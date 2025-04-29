@@ -20,7 +20,9 @@ import { ConfigService, VideoService } from '../services'
 import LightTooltip from '../components/misc/LightTooltip'
 
 import _ from 'lodash'
+import lt from 'semver'
 import WarningService from "../services/WarningService";
+import getAdminNews from '../services/Github';
 
 const Settings = ({ authenticated }) => {
   const [alert, setAlert] = React.useState({ open: false })
@@ -35,6 +37,7 @@ const Settings = ({ authenticated }) => {
         setConfig(conf)
         setUpdatedConfig(conf)
         await checkForWarnings()
+        await checkForNews()
       } catch (err) {
         console.error(err)
       }
@@ -73,7 +76,7 @@ const Settings = ({ authenticated }) => {
     })
   }
 
-  const checkForWarnings  = async () =>{
+  const checkForWarnings = async () =>{
       let warnings = await WarningService.getAdminWarnings()
 
       if (Object.keys(warnings.data).length === 0)
@@ -87,6 +90,50 @@ const Settings = ({ authenticated }) => {
           });
           await new Promise(r => setTimeout(r, 2000)); //Without this a second Warning would instantly overwrite the first...
       }
+  }
+
+  const checkForNews = async () => {
+    const news = await getAdminNews()
+    
+    for (const article of news) {
+      const now = new Date()
+      const current_version = process.env.REACT_APP_VERSION
+      const art_date = new Date(article.date)
+      const art_message = article.message
+      const ignore_ver = article.ignore_if_version
+      const ignore_date = article.ignore_after
+      const critical = new Boolean(article.critical)
+      console.log("News article found")
+      console.debug('Article:', article)
+      console.debug('Ignore version:', ignore_ver)
+      console.debug('Ignore date:', ignore_date)
+      console.debug('Critical:', critical)
+      console.debug('Article date:', art_date)
+      console.debug('Now:', now)
+      console.debug('Current version:', current_version)
+      console.debug('Article message:', art_message)
+      if (ignore_ver && lt(current_version, ignore_ver) == true || current_version == ignore_ver) continue
+      if (ignore_date && now > ignore_date) continue
+      if (critical == true) {
+        setAlert({
+          open: true,
+          type: 'error',
+          message: art_message,
+        });
+      }
+      if (critical == false) {
+        setAlert({
+          open: true,
+          type: 'info',
+          message: art_message,
+        });
+      }
+      await new Promise(r => setTimeout(r, 10000)); // Add delay so multiple news warnings will not overwrite each other
+
+      setAlert((prev) => ({ ...prev, open: false }));
+      await new Promise((resolve) => setTimeout(resolve, 250)); // Small delay to ensure smooth transition
+
+    }
   }
 
   return (

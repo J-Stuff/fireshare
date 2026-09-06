@@ -192,18 +192,22 @@ const Dashboard = ({
 
   // Get the filtered videos based on folder selection
   const displayVideos = React.useMemo(() => {
-  if (!filteredVideos) return filteredVideos
+    if (!filteredVideos) return filteredVideos
 
-  const folderFiltered =
-    folder.value === 'All Videos'
-      ? filteredVideos
-      : filteredVideos.filter(
-          (v) => v.path.split('/').slice(0, -1).filter((f) => f !== '')[0] === folder.value,
-        )
+    const folderFiltered =
+      folder.value === 'All Videos'
+        ? filteredVideos
+        : filteredVideos.filter(
+            (v) => 
+              v.path
+                .split('/')
+                .slice(0, -1)
+                .filter((f) => f !== '')[0] === folder.value,
+          )
 
-  if (privacyFilter.value === 'all') return folderFiltered
-  return folderFiltered.filter((v) => v.info?.private === (privacyFilter.value === 'private'))
-}, [filteredVideos, folder, privacyFilter])
+    if (privacyFilter.value === 'all') return folderFiltered
+    return folderFiltered.filter((v) => v.info?.private === (privacyFilter.value === 'private'))
+  }, [filteredVideos, folder, privacyFilter])
 
   // Sort videos by recorded date or views
   const sortedVideos = React.useMemo(() => {
